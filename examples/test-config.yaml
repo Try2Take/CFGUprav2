@@ -1,0 +1,5 @@
+package_name: A
+repository: test-repository.yaml
+test_mode: true
+output_file: test-graph.png
+ascii_tree: true
