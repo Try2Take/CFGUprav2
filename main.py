@@ -6,24 +6,29 @@ import argparse
 import sys
 
 from src.dependency_graph.config import ConfigError, load_config
+from src.dependency_graph.registry import RegistryError, direct_dependencies
 
 
 def main() -> int:
-    """Показывает проверенные настройки первого этапа."""
+    """Показывает прямые зависимости пакета из npm-реестра."""
     parser = argparse.ArgumentParser(description="Граф зависимостей npm")
     parser.add_argument("--config", default="config.yaml",
                         help="путь к YAML-конфигурации")
     args = parser.parse_args()
     try:
         config = load_config(args.config)
-    except ConfigError as error:
+        if config.test_mode:
+            raise RegistryError("тестовый репозиторий доступен с этапа 3")
+        dependencies = direct_dependencies(config.package_name,
+                                           config.repository)
+    except (ConfigError, RegistryError) as error:
         print(f"Ошибка: {error}", file=sys.stderr)
         return 2
-    print(f"package_name={config.package_name}")
-    print(f"repository={config.repository}")
-    print(f"test_mode={str(config.test_mode).lower()}")
-    print(f"output_file={config.output_file}")
-    print(f"ascii_tree={str(config.ascii_tree).lower()}")
+    print(f"Прямые зависимости {config.package_name}:")
+    for name in sorted(dependencies):
+        print(f"{name}: {dependencies[name]}")
+    if not dependencies:
+        print("(нет)")
     return 0
 
 
