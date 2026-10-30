@@ -1,4 +1,4 @@
-"""Проверки вывода прямых зависимостей и ошибок запуска."""
+"""Проверки вывода графа зависимостей и ошибок запуска."""
 
 import subprocess
 import sys
@@ -18,29 +18,30 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 class CliTests(unittest.TestCase):
     """Проверяет результат запуска с YAML-конфигурацией."""
 
-    def test_prints_direct_dependencies(self):
+    def test_prints_test_graph_with_cycle(self):
         with tempfile.TemporaryDirectory() as directory:
+            repository_path = Path(directory) / "repo.json"
+            repository_path.write_text(
+                '{"A":["B"],"B":["A"]}', encoding="utf-8"
+            )
             config_path = Path(directory) / "config.yaml"
             config_path.write_text(
-                "package_name: express\n"
-                "repository: https://registry.npmjs.org\n"
-                "test_mode: false\n"
+                "package_name: A\n"
+                "repository: repo.json\n"
+                "test_mode: true\n"
                 "output_file: graph.png\n"
                 "ascii_tree: false\n",
                 encoding="utf-8",
             )
             output = StringIO()
             with patch.object(sys, "argv", ["main.py", "--config",
-                                           str(config_path)]), \
-                    patch("main.direct_dependencies", return_value={
-                        "zeta": "^2", "alpha": "~1",
-                    }) as fetch, redirect_stdout(output):
-                status = main()
+                                           str(config_path)]):
+                with redirect_stdout(output):
+                    status = main()
 
         self.assertEqual(status, 0)
-        fetch.assert_called_once_with("express", "https://registry.npmjs.org")
         self.assertEqual(output.getvalue().splitlines(), [
-            "Прямые зависимости express:", "alpha: ~1", "zeta: ^2",
+            "Граф зависимостей A:", "A -> B", "B -> A",
         ])
 
     def test_reports_configuration_error_without_traceback(self):

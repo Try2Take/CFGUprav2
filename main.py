@@ -6,11 +6,14 @@ import argparse
 import sys
 
 from src.dependency_graph.config import ConfigError, load_config
+from src.dependency_graph.graph import (
+    GraphError, build_graph, load_test_repository,
+)
 from src.dependency_graph.registry import RegistryError, direct_dependencies
 
 
 def main() -> int:
-    """Показывает прямые зависимости пакета из npm-реестра."""
+    """Показывает транзитивный граф зависимостей заданного пакета."""
     parser = argparse.ArgumentParser(description="Граф зависимостей npm")
     parser.add_argument("--config", default="config.yaml",
                         help="путь к YAML-конфигурации")
@@ -18,17 +21,22 @@ def main() -> int:
     try:
         config = load_config(args.config)
         if config.test_mode:
-            raise RegistryError("тестовый репозиторий доступен с этапа 3")
-        dependencies = direct_dependencies(config.package_name,
-                                           config.repository)
-    except (ConfigError, RegistryError) as error:
+            repository = load_test_repository(config.repository)
+            if config.package_name not in repository:
+                raise GraphError("заданный пакет отсутствует в графе")
+            resolver = repository.__getitem__
+        else:
+            def resolver(package_name: str):
+                """Читает прямые зависимости пакета из npm-реестра."""
+                return direct_dependencies(package_name, config.repository)
+        graph = build_graph(config.package_name, resolver)
+    except (ConfigError, RegistryError, GraphError) as error:
         print(f"Ошибка: {error}", file=sys.stderr)
         return 2
-    print(f"Прямые зависимости {config.package_name}:")
-    for name in sorted(dependencies):
-        print(f"{name}: {dependencies[name]}")
-    if not dependencies:
-        print("(нет)")
+    print(f"Граф зависимостей {config.package_name}:")
+    for name, dependencies in graph.items():
+        names = ", ".join(dependencies) if dependencies else "(нет)"
+        print(f"{name} -> {names}")
     return 0
 
 
