@@ -1,0 +1,5 @@
+package_name: is-even
+repository: https://registry.npmjs.org
+test_mode: false
+output_file: is-even.png
+ascii_tree: true

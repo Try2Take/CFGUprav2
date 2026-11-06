@@ -40,34 +40,10 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.output_file, "graph.png")
         self.assertIs(config.ascii_tree, True)
 
-    def test_requires_root_for_npm_reverse_mode(self):
+    def test_rejects_stage_four_only_mode(self):
         self.write_config(VALID_CONFIG + "reverse_mode: true\n")
 
-        with self.assertRaisesRegex(ConfigError, "graph_root"):
-            load_config(self.config_path)
-
-    def test_loads_root_for_npm_reverse_mode(self):
-        self.write_config(
-            VALID_CONFIG.replace("express", "is-number")
-            + "reverse_mode: true\ngraph_root: is-even\n"
-        )
-
-        config = load_config(self.config_path)
-
-        self.assertEqual(config.graph_root, "is-even")
-
-    def test_rejects_invalid_npm_root(self):
-        self.write_config(
-            VALID_CONFIG + "reverse_mode: true\ngraph_root: bad name\n"
-        )
-
-        with self.assertRaisesRegex(ConfigError, "graph_root"):
-            load_config(self.config_path)
-
-    def test_rejects_invalid_reverse_mode(self):
-        self.write_config(VALID_CONFIG + "reverse_mode: maybe\n")
-
-        with self.assertRaisesRegex(ConfigError, "reverse_mode"):
+        with self.assertRaisesRegex(ConfigError, "неизвестный параметр"):
             load_config(self.config_path)
 
     def test_resolves_test_repository_relative_to_config(self):
