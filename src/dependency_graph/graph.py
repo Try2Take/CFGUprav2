@@ -42,6 +42,15 @@ def build_graph(
     return graph
 
 
+def reverse_graph(repository: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Меняет направление каждой связи тестового репозитория."""
+    reversed_graph = {package: [] for package in repository}
+    for package, dependencies in repository.items():
+        for dependency in dependencies:
+            reversed_graph[dependency].append(package)
+    return reversed_graph
+
+
 def _validate_test_entry(package: object, neighbors: object) -> None:
     """Проверяет имя пакета и список его прямых зависимостей."""
     if not isinstance(package, str) or not TEST_NAME.fullmatch(package):

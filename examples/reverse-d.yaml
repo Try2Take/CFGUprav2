@@ -1,0 +1,6 @@
+package_name: D
+repository: test-repository.json
+test_mode: true
+output_file: reverse-d.png
+ascii_tree: false
+reverse_mode: true

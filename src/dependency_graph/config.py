@@ -17,6 +17,7 @@ FIELDS = (
     "output_file",
     "ascii_tree",
 )
+OPTIONAL_FIELDS = ("reverse_mode", "graph_root")
 NPM_NAME = re.compile(
     r"(?:@[a-z0-9][a-z0-9._~-]*/)?[a-z0-9][a-z0-9._~-]*"
 )
@@ -36,6 +37,8 @@ class Config:
     test_mode: bool
     output_file: str
     ascii_tree: bool
+    reverse_mode: bool = False
+    graph_root: str | None = None
 
 
 def _boolean(value: object, name: str) -> bool:
@@ -45,13 +48,27 @@ def _boolean(value: object, name: str) -> bool:
     return value
 
 
-def _package_name(value: object, test_mode: bool) -> str:
+def _package_name(
+    value: object, test_mode: bool, field: str = "package_name",
+) -> str:
     """Проверяет имя npm-пакета или тестовое имя из заглавных букв."""
     pattern = TEST_NAME if test_mode else NPM_NAME
     if not isinstance(value, str) or not pattern.fullmatch(value):
         kind = "заглавные латинские буквы" if test_mode else "имя npm"
-        raise ConfigError(f"package_name: ожидается корректное {kind}")
+        raise ConfigError(f"{field}: ожидается корректное {kind}")
     return value
+
+
+def _graph_root(data: dict, test_mode: bool, reverse_mode: bool) -> str | None:
+    """Проверяет границу поиска обратных зависимостей в npm."""
+    value = data.get("graph_root")
+    if reverse_mode and not test_mode:
+        if value is None:
+            raise ConfigError("graph_root: укажите корневой npm-пакет")
+        return _package_name(value, False, "graph_root")
+    if value is not None:
+        raise ConfigError("graph_root: допустим только для npm reverse_mode")
+    return None
 
 
 def _test_repository(value: str, base: Path) -> str:
@@ -111,14 +128,17 @@ def load_config(config_path: Path) -> Config:
     for name in FIELDS:
         if name not in data:
             raise ConfigError(f"{name}: параметр отсутствует")
-    unknown = data.keys() - FIELDS
+    unknown = data.keys() - set(FIELDS + OPTIONAL_FIELDS)
     if unknown:
         raise ConfigError(f"config: неизвестный параметр: {sorted(unknown)[0]}")
     test_mode = _boolean(data["test_mode"], "test_mode")
+    reverse_mode = _boolean(data.get("reverse_mode", False), "reverse_mode")
     return Config(
         package_name=_package_name(data["package_name"], test_mode),
         repository=_repository(data["repository"], test_mode, path.parent),
         test_mode=test_mode,
         output_file=_output_file(data["output_file"]),
         ascii_tree=_boolean(data["ascii_tree"], "ascii_tree"),
+        reverse_mode=reverse_mode,
+        graph_root=_graph_root(data, test_mode, reverse_mode),
     )

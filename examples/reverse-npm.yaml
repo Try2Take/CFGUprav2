@@ -1,0 +1,7 @@
+package_name: is-number
+repository: https://registry.npmjs.org
+test_mode: false
+output_file: reverse-npm.png
+ascii_tree: false
+reverse_mode: true
+graph_root: is-even

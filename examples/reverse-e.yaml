@@ -1,0 +1,6 @@
+package_name: E
+repository: test-repository.json
+test_mode: true
+output_file: reverse-e.png
+ascii_tree: false
+reverse_mode: true

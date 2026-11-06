@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from src.dependency_graph.graph import (
-    GraphError, build_graph, load_test_repository,
+    GraphError, build_graph, load_test_repository, reverse_graph,
 )
 
 
@@ -38,6 +38,20 @@ class GraphTests(unittest.TestCase):
             graph = load_test_repository(path)
 
         self.assertEqual(graph, {"A": ["B"], "B": []})
+
+    def test_reverse_bfs_finds_direct_and_transitive_dependents(self):
+        repository = {
+            "A": ["B", "C"], "B": ["D"],
+            "C": ["D"], "D": ["A"], "E": [],
+        }
+
+        reversed_graph = reverse_graph(repository)
+        visited = build_graph("D", reversed_graph.__getitem__)
+
+        self.assertEqual(list(visited), ["D", "B", "C", "A"])
+        self.assertEqual(reversed_graph["D"], ["B", "C"])
+        self.assertEqual(build_graph("E", reversed_graph.__getitem__),
+                         {"E": []})
 
     def test_rejects_invalid_test_package_name(self):
         with tempfile.TemporaryDirectory() as directory:
